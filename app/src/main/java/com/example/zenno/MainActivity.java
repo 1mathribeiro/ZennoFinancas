@@ -1,0 +1,117 @@
+package com.example.zenno;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
+import org.json.JSONObject;
+import java.io.IOException;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+
+public class MainActivity extends AppCompatActivity {
+    EditText txtValor;
+    Spinner spinnerMoedaOrigem;
+    Spinner spinnerMoedaDestino;
+    Button btnConverter;
+    TextView lblResultado;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        txtValor = findViewById(R.id.txtValor);
+        spinnerMoedaOrigem = findViewById(R.id.spinnerMoedaOrigem);
+        spinnerMoedaDestino = findViewById(R.id.spinnerMoedaDestino);
+        btnConverter = findViewById(R.id.btnConverter);
+        lblResultado = findViewById(R.id.lblResultado);
+
+        // Código para funcionamento do spinner
+        String[] moedas = {"USD", "EUR", "BRL"};
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                MainActivity.this,
+                android.R.layout.simple_spinner_item,
+                moedas
+        );
+
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerMoedaOrigem.setAdapter(adapter);
+        spinnerMoedaDestino.setAdapter(adapter);
+
+        btnConverter.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String origem = spinnerMoedaOrigem.getSelectedItem().toString();
+                String destino = spinnerMoedaDestino.getSelectedItem().toString();
+                String valorStr = txtValor.getText().toString().trim();
+
+                if (valorStr.isEmpty()) {
+                    Toast.makeText(MainActivity.this, "Digite um valor", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                double valor;
+                try {
+                    valor = Double.parseDouble(valorStr);
+                } catch (NumberFormatException e) {
+                    Toast.makeText(MainActivity.this, "Digite um número válido!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                //url para chamar a API
+
+                String url = "https://economia.awesomeapi.com.br/json/last/" + origem + "-" + destino;
+                OkHttpClient client = new OkHttpClient();
+                Request request = new Request.Builder().url(url).build();
+
+                client.newCall(request).enqueue(new Callback() {
+                    @Override
+                    public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                        e.printStackTrace();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Toast.makeText(MainActivity.this, "Erro ao acessar API", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                        if (response.isSuccessful()) {
+                            String jsonData = response.body().string();
+
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        JSONObject json = new JSONObject(jsonData);
+                                        String key = origem + destino;
+                                        double taxa = json.getJSONObject(key).getDouble("bid");
+                                        double resultado = valor * taxa;
+
+                                        lblResultado.setText(String.format("%.2f %s = %.2f %s", valor, origem, resultado, destino));
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                        Toast.makeText(MainActivity.this, "Erro ao processar dados", Toast.LENGTH_SHORT).show();
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    }
+}
