@@ -36,15 +36,20 @@ public class MainActivity extends AppCompatActivity {
         btnConverter = findViewById(R.id.btnConverter);
         lblResultado = findViewById(R.id.lblResultado);
 
-        // Código para funcionamento do spinner
-        String[] moedas = {"USD", "EUR", "BRL"};
+        Moeda[] moedas = {
+                new Moeda("USD", "Dólar Americano"),
+                new Moeda("EUR", "Euro"),
+                new Moeda("BRL", "Real Brasileiro"),
+                new Moeda("JPY", "Iene Japonês"),
+                new Moeda("GBP", "Libra Esterlina"),
+                new Moeda("AUD", "Dólar Australiano"),
+                new Moeda("CAD", "Dólar Canadense"),
+                new Moeda("CHF", "Franco Suíço"),
+                new Moeda("CNY", "Yuan Chinês"),
+                new Moeda("NZD", "Dólar Neozelandês")
+        };
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                MainActivity.this,
-                android.R.layout.simple_spinner_item,
-                moedas
-        );
-
+        ArrayAdapter<Moeda> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, moedas);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerMoedaOrigem.setAdapter(adapter);
         spinnerMoedaDestino.setAdapter(adapter);
@@ -52,10 +57,13 @@ public class MainActivity extends AppCompatActivity {
         btnConverter.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String origem = spinnerMoedaOrigem.getSelectedItem().toString();
-                String destino = spinnerMoedaDestino.getSelectedItem().toString();
-                String valorStr = txtValor.getText().toString().trim();
+                Moeda moedaOrigem = (Moeda) spinnerMoedaOrigem.getSelectedItem();
+                Moeda moedaDestino = (Moeda) spinnerMoedaDestino.getSelectedItem();
 
+                String origem = moedaOrigem.getCodigo();
+                String destino = moedaDestino.getCodigo();
+
+                String valorStr = txtValor.getText().toString().trim();
                 if (valorStr.isEmpty()) {
                     Toast.makeText(MainActivity.this, "Digite um valor", Toast.LENGTH_SHORT).show();
                     return;
@@ -68,9 +76,7 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(MainActivity.this, "Digite um número válido!", Toast.LENGTH_SHORT).show();
                     return;
                 }
-
-                //url para chamar a API
-
+                    // Monta a url da api usando os códigos das moedas
                 String url = "https://economia.awesomeapi.com.br/json/last/" + origem + "-" + destino;
                 OkHttpClient client = new OkHttpClient();
                 Request request = new Request.Builder().url(url).build();
@@ -79,33 +85,23 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onFailure(@NonNull Call call, @NonNull IOException e) {
                         e.printStackTrace();
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Toast.makeText(MainActivity.this, "Erro ao acessar API", Toast.LENGTH_SHORT).show();
-                            }
-                        });
+                        runOnUiThread(() -> Toast.makeText(MainActivity.this, "Erro ao acessar API", Toast.LENGTH_SHORT).show());
                     }
 
                     @Override
                     public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                         if (response.isSuccessful()) {
                             String jsonData = response.body().string();
-
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    try {
-                                        JSONObject json = new JSONObject(jsonData);
-                                        String key = origem + destino;
-                                        double taxa = json.getJSONObject(key).getDouble("bid");
-                                        double resultado = valor * taxa;
-
-                                        lblResultado.setText(String.format("%.2f %s = %.2f %s", valor, origem, resultado, destino));
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                        Toast.makeText(MainActivity.this, "Erro ao processar dados", Toast.LENGTH_SHORT).show();
-                                    }
+                            runOnUiThread(() -> {
+                                try {
+                                    JSONObject json = new JSONObject(jsonData);
+                                    String key = origem + destino;
+                                    double taxa = json.getJSONObject(key).getDouble("bid");
+                                    double resultado = valor * taxa;
+                                    lblResultado.setText(String.format("%.2f %s = %.2f %s", valor, origem, resultado, destino));
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                    Toast.makeText(MainActivity.this, "Erro ao processar dados", Toast.LENGTH_SHORT).show();
                                 }
                             });
                         }
