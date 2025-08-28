@@ -17,12 +17,14 @@ import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import android.content.Intent;
+
 
 public class MainActivity extends AppCompatActivity {
     EditText txtValor;
     Spinner spinnerMoedaOrigem;
     Spinner spinnerMoedaDestino;
-    Button btnConverter;
+    Button btnConverter, BtnEsqueceu;
     TextView lblResultado;
 
     @Override
